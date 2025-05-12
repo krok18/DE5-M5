@@ -4,5 +4,5 @@
 
 The proposed solution for the MVP:
 
-![ArchitecturalDiagram](./references/MVPArchitecture.png)
+![ArchitecturalDiagram](./References/MVPArchitecture.png)
 
