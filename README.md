@@ -6,3 +6,6 @@ The proposed solution for the MVP:
 
 ![ArchitecturalDiagram](./References/MVPArchitecture.png)
 
+## Kanban board (incomplete)
+
+![KanbanBoard](./References/KanbanBoard.png)
