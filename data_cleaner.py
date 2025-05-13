@@ -1,12 +1,11 @@
-
 import pandas as pd
 import pyodbc
 from sqlalchemy import create_engine
 
 def DataLoadCSV():
-    Books = pd.DataFrame(pd.read_csv("Data/Raw/Books.csv")).dropna()
-    Customers = pd.DataFrame(pd.read_csv("Data/Raw/Customers.csv")).dropna()
-
+    Books = pd.DataFrame(pd.read_csv("Data/Raw/Books.csv"))
+    Customers = pd.DataFrame(pd.read_csv("Data/Raw/Customers.csv"))
+    
 def DataDropNaDupe():
     Books = Books.dropna().dropduplicates()
     Customers = Customers.dropna().dropduplicates()
@@ -18,6 +17,7 @@ def DataCleaner():
     Customers["Customer ID"] = Customers["Customer ID"].astype(int)
     
     Books["Book checkout"] = Books["Book checkout"].replace("\"","",regex=True)
+    Books.iloc[6] = Books.iloc[6].replace("10/04/2063","10/04/2023")
     Books.iloc[16] = Books.iloc[16].replace("32/05/2023","31/05/2023")
     
     Books["Book checkout"] = pd.to_datetime(Books["Book checkout"], format="mixed")
@@ -40,11 +40,8 @@ def DataDumpSQL():
         except Exception as ex:
             print("Error: \n", ex)
 
-
-
-
-DataLoadCSV
-DataDropNaDupe
-DataCleaner
-DataEnrich
-DataDumpSQL
+DataLoadCSV()
+DataDropNaDupe()
+DataCleaner()
+DataEnrich()
+DataDumpSQL()
