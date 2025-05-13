@@ -2,15 +2,16 @@ import pandas as pd
 import pyodbc
 from sqlalchemy import create_engine
 
-def DataLoadCSV():
-    books = pd.DataFrame(pd.read_csv("Data/Raw/Books.csv"))
-    customers = pd.DataFrame(pd.read_csv("Data/Raw/Customers.csv"))
-   
+def DataLoadCSV(filepath):
+    rawdata = pd.DataFrame(pd.read_csv(filepath))
+    return rawdata
+    
 def DataDropNaDupe(df):
-    df.dropna().dropduplicates()
+    df.dropna().drop_duplicates()
     return df
 
 def DataCleaner(df, df2):
+
     df["Id"] = df["Id"].astype(int)
     df["Customer ID"] = df["Customer ID"].astype(int)
     df2["Customer ID"] = df2["Customer ID"].astype(int)
@@ -40,9 +41,23 @@ def DataDumpSQL(df, df2):
         except Exception as ex:
             print("Error: \n", ex)
 
-DataLoadCSV()
-DataDropNaDupe(df="books")
-DataDropNaDupe(df="customers")
-DataCleaner(df="books", df2="customers")
-DataEnrich(df="books")
-DataDumpSQL(df="books", df2="customers")
+def DataOutCSV(df, df2):
+    df.to_csv("Data/Processed/Books.csv", header=True)
+    df2.to_csv("Data/Processed/Customers.csv", header=True)
+    
+
+def main():
+    df = DataLoadCSV(filepath="Data/Raw/Books.csv")
+    df2 = DataLoadCSV(filepath ="Data/Raw/Customers.csv")
+    df = DataDropNaDupe(df)
+    df2 = DataDropNaDupe(df2)
+#    print(df.dropna())
+#    DataCleaner(df, df2)
+#    DataEnrich(df)
+#    DataDumpSQL(df, df2)
+    return df
+
+
+if __name__ == '__main__':
+    main()
+
