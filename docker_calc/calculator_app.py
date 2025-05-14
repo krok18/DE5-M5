@@ -17,8 +17,12 @@ class Calculator:
     
     def do_divide(self):
         return round((self.a / self.b),2)
-    
-myCalc = Calculator(364,97)
+
+a = int(input("Please input number 'a':\n"))
+
+b = int(input("Please input number 'b':\n"))
+
+myCalc = Calculator(a,b)
 print(myCalc.do_product())
 
 
