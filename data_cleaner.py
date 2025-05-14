@@ -2,62 +2,147 @@ import pandas as pd
 import pyodbc
 from sqlalchemy import create_engine
 
-def DataLoadCSV(filepath):
-    rawdata = pd.DataFrame(pd.read_csv(filepath))
-    return rawdata
-    
-def DataDropNaDupe(df):
-    df.dropna().drop_duplicates()
+# Function to output dataframe that can be manipulated via a filepath
+def fileLoader(filepath):
+    data = pd.read_csv(filepath)
+    return data 
+
+# Duplicate Dropping Function
+def duplicateCleaner(df):
+    return df.drop_duplicates().reset_index(drop=True)
+
+# NA handler - future scope can handle errors more elegantly. 
+def naCleaner(df):
+    return df.dropna().reset_index(drop=True)
+
+# Turning date columns into datetime
+def dateCleaner(col, df):
+    #date_errors = pd.DataFrame(columns=df.columns)  # Store rows with date errors
+
+    # Strip any quotes from dates
+    df[col] = df[col].str.replace('"', "", regex=True)
+
+    try:
+        df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce')
+
+    except Exception as e:
+        print(f"Error while converting column {col} to datetime: {e}")
+
+    # Identify rows with invalid dates
+    error_flag = pd.to_datetime(df[col], dayfirst=True, errors='coerce').isna()
+        
+    # Move invalid rows to date_errors - Future feature
+    #date_errors = df[error_flag]
+        
+    # Keep only valid rows in df
+    df = df[~error_flag].copy()
+
+    # Reset index for the cleaned DataFrame
+    df.reset_index(drop=True, inplace=True)
+
     return df
 
-def DataCleaner(df, df2):
-
-    df["Id"] = df["Id"].astype(int)
-    df["Customer ID"] = df["Customer ID"].astype(int)
-    df2["Customer ID"] = df2["Customer ID"].astype(int)
+def enrich_dateDuration(colA, colB, df):
+    """
+    Takes the two datetime input column names and the dataframe to create a new column date_delta which is the difference, in days, between colA and colB.
     
-    df["Book checkout"] = df["Book checkout"].replace("\"","",regex=True)
-    df.iloc[6] = df.iloc[6].replace("10/04/2063","10/04/2023")
-    df.iloc[16] = df.iloc[16].replace("32/05/2023","31/05/2023")
-    
-    df["Book checkout"] = pd.to_datetime(df["Book checkout"], format="mixed")
-    df["Book Returned"] = pd.to_datetime(df["Book Returned"], format="mixed")
+    Note:
+    colB>colA
+    """
+    df['date_delta'] = (df[colB]-df[colA]).dt.days
 
-    df["Books"] = df["Books"].str.title()
+    #Conditional Filtering to be able to gauge eroneous loans.
+    df.loc[df['date_delta'] < 0, 'valid_loan_flag'] = False
+    df.loc[df['date_delta'] >= 0, 'valid_loan_flag'] = True
 
-def DataEnrich(df):
-    df["Days allowed to borrow"] = df["Days allowed to borrow"].replace(" weeks","",regex=True).astype(int)
-    df["Days allowed to borrow"] = df["Days allowed to borrow"]*7
-    df['Days on Loan'] = (df['Book Returned'] - df['Book checkout']).dt.days
+    return df
 
-def DataDumpSQL(df, df2):
-    connection_string = f'mssql+pyodbc://@localhost/LibraryDB?trusted_connection=yes&driver=ODBC+Driver+17+for+SQL+Server'
+def writeToSQL(df, table_name, server, database):
+
+    # Create the connection string with Windows Authentication
+    connection_string = f'mssql+pyodbc://@{server}/{database}?trusted_connection=yes&driver=ODBC+Driver+17+for+SQL+Server'
+
+    # Create the SQLAlchemy engine
     engine = create_engine(connection_string)
-    if __name__ == '__main__':
-        try:
-            df.to_sql('Books', con=engine, if_exists='replace', index=False)
-            df2.to_sql('Customers', con=engine, if_exists='replace', index=False)
 
-        except Exception as ex:
-            print("Error: \n", ex)
+    try:
+        # Write the DataFrame to SQL Server
+        df.to_sql(table_name, con=engine, if_exists='replace', index=False)
 
-def DataOutCSV(df, df2):
-    df.to_csv("Data/Processed/Books.csv", header=True)
-    df2.to_csv("Data/Processed/Customers.csv", header=True)
-    
+        print(f"Table{table_name} written to SQL")
+    except Exception as e:
+        print(f"Error writing to the SQL Server: {e}")
 
-def main():
-    df = DataLoadCSV(filepath="Data/Raw/Books.csv")
-    df2 = DataLoadCSV(filepath ="Data/Raw/Customers.csv")
-    df = DataDropNaDupe(df)
-    df2 = DataDropNaDupe(df2)
-#    print(df.dropna())
-#    DataCleaner(df, df2)
-#    DataEnrich(df)
-#    DataDumpSQL(df, df2)
-    return df
-
+def writeToCSV(df, filepath):
+    df.to_csv(filepath, header=True)
 
 if __name__ == '__main__':
-    main()
+    print('**************** Starting Clean ****************')
 
+    # Instantiation
+    #dropCount= 0
+    #customer_drop_count = 0
+    filepath_input = './data/raw/Books.csv'
+    date_columns = ['Book checkout', 'Book Returned']
+    date_errors = None
+
+    data = fileLoader(filepath=filepath_input)
+
+    # Drop duplicates & NAs
+    data = duplicateCleaner(data)
+    data = naCleaner(data)
+
+    # Converting date columns into datetime
+    for col in date_columns:
+        data = dateCleaner(col, data)
+    
+    # Enriching the dataset
+    data = enrich_dateDuration(df=data, colA='Book Returned', colB='Book checkout')
+
+    #data.to_csv('cleaned_file.csv')
+    print(data)
+
+    #Cleaning the customer file
+    filepath_input_2 = './data/Raw/Customers.csv'
+
+    data2 = fileLoader(filepath=filepath_input_2)
+
+    # Drop duplicates & NAs
+    data2 = duplicateCleaner(data2)
+    data2 = naCleaner(data2)
+
+    print(data2)
+    print('**************** DATA CLEANED ****************')
+
+    print('Writing to CSV file...')
+
+    filepath_output_1 = './data/Processed/Books.csv'
+    filepath_output_2 = './data/Processed/Customers.csv'
+
+    writeToCSV(
+        data,
+        filepath=filepath_output_1
+    )
+
+    writeToCSV(
+        data2,
+        filepath=filepath_output_2
+    )
+
+
+#    print('Writing to SQL Server...')
+
+#    writeToSQL(
+#        data, 
+#        table_name='loans_bronze', 
+#        server = 'localhost', 
+#        database = 'DE5_Module5' 
+#    )
+
+#    writeToSQL(
+#        data2, 
+#        table_name='customer_bronze', 
+#        server = 'localhost', 
+#        database = 'DE5_Module5'
+#    )
+    print('**************** End ****************')
