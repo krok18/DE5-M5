@@ -88,7 +88,7 @@ if __name__ == '__main__':
     # Instantiation
     dropCount= 0
     customer_drop_count = 0
-    filepath_input = './data/raw/Books.csv'
+    filepath_input = 'Books.csv'
     date_columns = ['Book checkout', 'Book Returned']
 
 
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     total_clean_books = len(data)
 
     #Cleaning the customer file
-    filepath_input_2 = './data/Raw/Customers.csv'
+    filepath_input_2 = 'Customers.csv'
 
     data2 = fileLoader(filepath=filepath_input_2)
 
@@ -162,9 +162,9 @@ if __name__ == '__main__':
 
     print('Writing to CSV file...')
 
-    filepath_output_1 = './data/Processed/Books.csv'
-    filepath_output_2 = './data/Processed/Customers.csv'
-    filepath_output_3 = './data/Processed/Totals.csv'    
+    filepath_output_1 = 'Books.csv'
+    filepath_output_2 = 'Customers.csv'
+    filepath_output_3 = 'Totals.csv'    
 
     writeToCSV(
         data,

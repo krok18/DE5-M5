@@ -40,3 +40,4 @@ Through the use of Python and Pandas, we are able to;
 
 ## Python app packaged as a Docker image for portable usage
 
+![DockerRun](./References/DockerRun.png)
