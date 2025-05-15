@@ -1,6 +1,6 @@
 import pandas as pd
-import pyodbc
-from sqlalchemy import create_engine
+# import pyodbc
+# from sqlalchemy import create_engine
 
 # Function to output dataframe that can be manipulated via a filepath
 def fileLoader(filepath):
@@ -17,7 +17,6 @@ def naCleaner(df):
 
 # Turning date columns into datetime
 def dateCleaner(col, df):
-    #date_errors = pd.DataFrame(columns=df.columns)  # Store rows with date errors
 
     # Strip any quotes from dates
     df[col] = df[col].str.replace('"', "", regex=True)
@@ -30,10 +29,7 @@ def dateCleaner(col, df):
 
     # Identify rows with invalid dates
     error_flag = pd.to_datetime(df[col], dayfirst=True, errors='coerce').isna()
-        
-    # Move invalid rows to date_errors - Future feature
-    #date_errors = df[error_flag]
-        
+    
     # Keep only valid rows in df
     df = df[~error_flag].copy()
 
@@ -49,6 +45,7 @@ def enrich_dateDuration(colA, colB, df):
     Note:
     colB>colA
     """
+
     df['date_delta'] = (df[colB]-df[colA]).dt.days
 
     #Conditional Filtering to be able to gauge eroneous loans.
@@ -62,6 +59,7 @@ def enrich_dateDuration(colA, colB, df):
 
     return df
 
+"""
 def writeToSQL(df, table_name, server, database):
 
     # Create the connection string with Windows Authentication
@@ -77,29 +75,44 @@ def writeToSQL(df, table_name, server, database):
         print(f"Table{table_name} written to SQL")
     except Exception as e:
         print(f"Error writing to the SQL Server: {e}")
-
+"""
+        
 def writeToCSV(df, filepath):
     df.to_csv(filepath, header=True)
+
+
 
 if __name__ == '__main__':
     print('**************** Starting Clean ****************')
 
     # Instantiation
-    #dropCount= 0
-    #customer_drop_count = 0
+    dropCount= 0
+    customer_drop_count = 0
     filepath_input = './data/raw/Books.csv'
     date_columns = ['Book checkout', 'Book Returned']
-    date_errors = None
+
 
     data = fileLoader(filepath=filepath_input)
+    total_raw_books = len(data)
 
     # Drop duplicates & NAs
-    data = duplicateCleaner(data)
     data = naCleaner(data)
+
+    total_na_removed_books = (total_raw_books - len(data))
+
+    total_rolling_books = len(data) 
+
+    data = duplicateCleaner(data)
+
+    total_dupes_removed_books = (total_rolling_books - len(data))
+
+    total_rolling_books = len(data)     
 
     # Converting date columns into datetime
     for col in date_columns:
         data = dateCleaner(col, data)
+
+    total_errors_removed_books = (total_rolling_books - len(data))
     
     # Enriching the dataset
     data = enrich_dateDuration(df=data, colA='Book checkout', colB='Book Returned')
@@ -107,22 +120,51 @@ if __name__ == '__main__':
     #data.to_csv('cleaned_file.csv')
     print(data)
 
+    total_clean_books = len(data)
+
     #Cleaning the customer file
     filepath_input_2 = './data/Raw/Customers.csv'
 
     data2 = fileLoader(filepath=filepath_input_2)
 
+    total_raw_customers = len(data2)   
+
     # Drop duplicates & NAs
-    data2 = duplicateCleaner(data2)
+
     data2 = naCleaner(data2)
 
+    total_na_removed_customers = (total_raw_customers - len(data2))    
+
+    total_rolling_customers = len(data2)
+
+    data2 = duplicateCleaner(data2)
+
+    total_dupes_removed_customers = (total_rolling_customers - len(data2))   
+
     print(data2)
+
+    total_clean_customers = len(data2)
+
     print('**************** DATA CLEANED ****************')
+
+    totals = pd.DataFrame({'total_raw_books': [total_raw_books],
+                           'total_na_removed_books': [total_na_removed_books],
+                           'total_dupes_removed_books': [total_dupes_removed_books],
+                           'total_errors_removed_books': [total_errors_removed_books],
+                           'total_raw_customers': [total_raw_customers],
+                           'total_na_removed_customers': [total_na_removed_customers],
+                           'total_dupes_removed_customers': [total_dupes_removed_customers],
+                           'total_clean_books': [total_clean_books],
+                           'total_clean_customers': [total_clean_customers]
+                           })
+
+    print(totals)
 
     print('Writing to CSV file...')
 
     filepath_output_1 = './data/Processed/Books.csv'
     filepath_output_2 = './data/Processed/Customers.csv'
+    filepath_output_3 = './data/Processed/Totals.csv'    
 
     writeToCSV(
         data,
@@ -134,6 +176,10 @@ if __name__ == '__main__':
         filepath=filepath_output_2
     )
 
+    writeToCSV(
+        totals,
+        filepath=filepath_output_3
+    )
 
 #    print('Writing to SQL Server...')
 
