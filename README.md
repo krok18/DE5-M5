@@ -36,6 +36,7 @@ Through the use of Python and Pandas, we are able to;
 
 ## PowerBI dashboard/visualisation for the cleaned data
 
-Include metrics such as how many rows dropped etc.
+![LibraryReport](./References/LibraryReport.png)
 
 ## Python app packaged as a Docker image for portable usage
+
