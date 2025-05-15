@@ -55,6 +55,11 @@ def enrich_dateDuration(colA, colB, df):
     df.loc[df['date_delta'] < 0, 'valid_loan_flag'] = False
     df.loc[df['date_delta'] >= 0, 'valid_loan_flag'] = True
 
+    #Conditional Filtering to be able to gauge late returns on loans.
+    df.loc[df['date_delta'] > 14, 'returned_on_time'] = False
+    df.loc[df['date_delta'] <= 14, 'returned_on_time'] = True
+    df.loc[df['valid_loan_flag'] == False, 'returned_on_time'] = ""
+
     return df
 
 def writeToSQL(df, table_name, server, database):
@@ -97,7 +102,7 @@ if __name__ == '__main__':
         data = dateCleaner(col, data)
     
     # Enriching the dataset
-    data = enrich_dateDuration(df=data, colA='Book Returned', colB='Book checkout')
+    data = enrich_dateDuration(df=data, colA='Book checkout', colB='Book Returned')
 
     #data.to_csv('cleaned_file.csv')
     print(data)
